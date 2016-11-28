@@ -22,7 +22,16 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
-
+// 11-28 JC 추가 : xor 랜덤 수를 생성하기
+import java.util.Random;
+/*
+ * modified Author : Jeon Jong-Chan
+ * Date : 2016-11-27 ~
+ * 문제점 & 수정
+ * 1. 채팅방 나가기가 안된다.
+ * 2. 서버종료해도 서버와는 통신을 한다.
+ * 3. 암호화 구현이 안되있다.
+ */
 public class Server extends JFrame implements ActionListener{
 	// 자동 import 단축키 ctrl + shift + o
 	
@@ -39,6 +48,9 @@ public class Server extends JFrame implements ActionListener{
    private int port;
    private Vector user_vc = new Vector();
    private Vector room_vc = new Vector();
+   //메세지 암호화를 위해 랜덤으로 배정될 xor 값
+   private Vector key_vc = new Vector();
+   private String key;
    
    
    private StringTokenizer st;
@@ -167,6 +179,7 @@ public class Server extends JFrame implements ActionListener{
 			server_socket.close();
 			user_vc.removeAllElements();
 			room_vc.removeAllElements();
+			key_vc.removeAllElements();
     	 } 
     	 catch (IOException e1) 
     	 {
@@ -330,12 +343,18 @@ public class Server extends JFrame implements ActionListener{
 			   
 			   if(RoomCh) //방을 만들 수 있을 때
 			   {
+				   Random random = new Random();
 				   RoomInfo new_room = new RoomInfo(message,this);
 				   room_vc.add(new_room); // 전체 방 벡터에 방을 추가
+				   // 11-28 JC 추가 : xor 랜덤 수를 생성하기
+				   key = key_generate();
+				   // 11-28 JC 추가 : xor_vc에 저장시켜 새로유저가 들어올 때 키를 나눠준다.
+				   key_vc.add(key);
 				   
 				   send_Message("CreateRoom/"+message);
-				   
-				   new_room.BroadCast_Room("Chatting/< 알림/******* "+message+"방을 개설하였습니다 ******* >");
+				   send_Message(key);
+				   System.out.println(" new_room.BroadCast_Room");
+				   new_room.BroadCast_Room("Notice/< 알림/******* "+message+"방을 개설하였습니다 ******* >");
 				   
 				   BroadCast("New_Room/"+message);
 			   }
@@ -368,11 +387,11 @@ public class Server extends JFrame implements ActionListener{
 				   if(r.Room_name.equals(message))
 				   {
 					   //새로운 사용자를 알림
-					   r.BroadCast_Room("Chatting/< 알림/******* "+message+"방에 "+Nickname+"님이 입장하셨습니다 ******* >");
-					   
+					   r.BroadCast_Room("Notice/< 알림/******* "+message+"방에 "+Nickname+"님이 입장하셨습니다 ******* >");
 					   //사용자 추가
 					   r.Add_User(this);
 					   send_Message("JoinRoom/"+message);
+					   send_Message(key);
 				   }
 			   }
 		   }
@@ -404,7 +423,7 @@ public class Server extends JFrame implements ActionListener{
 					   r.Room_user_vc.remove(message);
 					   
 					   
-					   r.BroadCast_Room("Chatting/< 알림/******* "+Nickname+"님이 "+message+"에서 나가셨습니다 ******* >\n");
+					   r.BroadCast_Room("Notice/< 알림/******* "+Nickname+"님이 "+message+"에서 나가셨습니다 ******* >\n");
 					   send_Message("Exiting/"+message);
 					     
 				   } 
@@ -437,6 +456,17 @@ public class Server extends JFrame implements ActionListener{
 		}
 		   
 	   }
+	   // 11-28 JC 추가
+	   public String key_generate()
+	   {
+	      //현재 시간을 기준으로 한 암호화 키 생성
+	      String time = Long.toString(System.currentTimeMillis( ));
+
+	      System.out.println("debug time : "+ time);
+	   
+	      return new String(time);
+	   
+	   	}
    } // UserInfo class 끝
    
    class RoomInfo
