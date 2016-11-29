@@ -12,6 +12,10 @@ import java.net.Socket;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.FileWriter;
+
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -200,6 +204,9 @@ public class Server extends JFrame implements ActionListener{
 	   
 	   private Socket user_socket;
 	   private String Nickname = "";
+	   private String pass = "";
+	   
+	   int count = 0;
    
 	   private boolean RoomCh = true;
 	   
@@ -220,7 +227,51 @@ public class Server extends JFrame implements ActionListener{
 		  os = user_socket.getOutputStream();
 		  dos = new DataOutputStream(os);
 		  
+		  textArea.append("debug  1 ");
+		  
 		  Nickname = dis.readUTF(); // 사용자의 닉네임을 받는다.
+		  pass = dis.readUTF();//사용자의 패스워드를 받는다.
+		  
+		  textArea.append("debug NIckname :"+Nickname+"password : "+pass+"\n");
+
+		  StringTokenizer join_tk = new StringTokenizer(pass, "/");
+		  pass = join_tk.nextToken();
+		  String join = "";
+		  if(join_tk.hasMoreTokens())
+		  {
+			  join = join_tk.nextToken();
+			  textArea.append("debug  2 : "+join+"\n");
+			  join = join +"/" + Nickname;
+			  InMessage(join);
+		  }
+
+		  BufferedReader in = new BufferedReader(new FileReader("info.txt"));
+		  String s;
+		  
+		  while ((s = in.readLine()) != null) {
+			  	textArea.append("debug  3 string : " + s +"\n");
+			    StringTokenizer tk = new StringTokenizer(s, "/");
+				String tmp_id = tk.nextToken();
+			    String tmp_pass = tk.nextToken();
+				System.out.println("저장된 id : "+tmp_id+"저장된 password :"+tmp_pass);
+				
+				if(tmp_id.equals(Nickname) && tmp_pass.equals(pass))
+				{
+					count = 0;
+					break;
+				}
+				else
+				{
+					count++;
+				}
+		  }
+		  if(count != 0)
+		  {
+			  System.out.println("잘못된 패스워드");
+			  dos.close();
+			  dis.close();
+			  user_socket.close();
+		  }
 		  textArea.append(Nickname+":사용자 접속\n");
 		  
 		  // 기존 사용자들에게 새로운 사용자 알림
@@ -323,6 +374,25 @@ public class Server extends JFrame implements ActionListener{
 				   }
 			   }
 		   } // if 문 끝
+		   else if(protocol.equals("Join"))
+		   {
+			   System.out.println("가입자:"+message);
+			   // 파일안에 문자열 쓰기
+			try {
+				FileWriter fw = new FileWriter("info.txt", true);
+				fw.write(Nickname+"/"+pass+"\r\n");
+				fw.flush();
+				// 객체 닫기
+				fw.close();
+				//닫아준다.
+				dos.close();
+				dis.close();
+				user_socket.close();
+			} catch (IOException e) {
+				// TODO 자동 생성된 catch 블록
+				e.printStackTrace();
+			}
+		   }
 		   else if(protocol.equals("CreateRoom"))
 		   {
 			   //1. 현재 같은 방이 존재 하는지 확인한다.
