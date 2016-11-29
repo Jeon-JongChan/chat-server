@@ -1,5 +1,3 @@
-﻿test test/
-종찬 aaaa/
-경화 bbbb/
-재현 cccc/
-재혁 dddd/
+test test/
+1 1/
+1 1/
